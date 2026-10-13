@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OrderBlock Live Market Scanner & Trading Terminal (Frontend)
+
+Institutional-grade quantitative scanning and paper trading interface for the **NSE Equity F&O universe (~213 symbols)**, tracking real-time Smart Money Concepts (SMC) Order Blocks, liquidity sweeps, and directional volume buildups.
+
+Built with **Next.js 16 (App Router + Turbopack)**, **React 19**, **Tailwind CSS v4**, and **Lucide React**.
+
+---
+
+## Architecture & Features
+
+- **Full-Duplex Telemetry WebSocket:** Auto-reconnecting real-time socket with exponential backoff and REST polling fallback (`/ws/telemetry`).
+- **BeeSwarm Breadth Dispersion:** Real-time directional market breadth visualization with volume-weighted physics.
+- **Top Picks Dual Boards:** Live actionable setups categorized by institutional conviction score, directional impulse ($\Delta_{\text{up}} \ge 2\Delta_{\text{down}}$), and derivatives buildup.
+- **Institutional Charting Overlays:** Powered by Lightweight Charts, displaying shaded rectangular Order Block zones (`FRESH` vs `MITIGATED`), invalidation stops, and R-multiple target lines.
+- **1-Click Execution & RMS Controls:**
+  - Automated ATR-based position sizing and order placement modal.
+  - Live virtual account summary bar displaying equity, margin, and PnL.
+  - Emergency circuit breaker **Kill-Switch** to immediately cancel pending orders and flatten open positions.
+- **Strict Invariant Compliance:** Zero OS emoji clutter (pure Lucide React vector icons) and strict TypeScript interfaces with zero `any`.
+
+---
+
+## Tech Stack
+
+- **Framework:** Next.js 16.4.0 (Turbopack, Standalone Output)
+- **Library:** React 19.3.0
+- **Styling:** Tailwind CSS v4
+- **Charts:** Lightweight Charts (TradingView)
+- **Icons:** Lucide React
+- **State & Tables:** Zustand, TanStack React Table
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Configuration
+
+Create a `.env.local` file in the root of the frontend:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/telemetry
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Production Build & Lint
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Linting
+npm run lint
 
-## Learn More
+# Production Standalone Build
+npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# Start Production Server
+npm run start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Repository Documentation
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For architectural invariants, telemetry component graphs, and schema references, see:
+- [`docs/FE_rulebook.md`](./docs/FE_rulebook.md): Authoritative architectural and UI/UX invariants.
+- [`docs/FE_graph_context.md`](./docs/FE_graph_context.md): Component topology and WebSocket data flow.
+- [`docs/FE_everything_reference.md`](./docs/FE_everything_reference.md): Design tokens, component contracts, and event payloads.
