@@ -82,6 +82,9 @@ export interface TopPickCardOutput {
   risk_reward: number;
   vwap: number;
   mini_chart_candles?: Candle5m[];
+  ob_formed_at?: string;
+  ob_confirmed_at?: string;
+  ob_state?: ZoneState;
 }
 
 export interface BeeSwarmDot {

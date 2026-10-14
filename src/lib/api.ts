@@ -49,6 +49,9 @@ export interface StockChartResponse {
   invalidation_level?: number;
   target_level?: number;
   vwap?: number;
+  ob_formed_at?: string;
+  ob_confirmed_at?: string;
+  ob_state?: string;
   order_blocks: OrderBlockZone[];
 }
 

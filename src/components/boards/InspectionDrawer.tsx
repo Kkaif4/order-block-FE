@@ -3,7 +3,8 @@
 import React from "react";
 import { TopPickCardOutput, Candle5m } from "@/lib/types";
 import { PriceChart } from "../charts/PriceChart";
-import { X, Crosshair, TrendingUp, TrendingDown } from "lucide-react";
+import { X, Crosshair, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { formatMarketTime, formatMarketTimeWithSeconds, formatTimeAgo } from "@/lib/timeUtils";
 
 interface InspectionDrawerProps {
   isOpen: boolean;
@@ -97,8 +98,21 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
             <div className="text-[#38BDF8] font-semibold">₹{pick.vwap.toFixed(2)}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">6. OB ZONE</div>
+            <div className="flex items-center justify-between text-[10px] text-[#64748B]">
+              <span>6. OB ZONE & TIME</span>
+              {pick.ob_state && (
+                <span className="text-[9px] text-emerald-400 font-bold px-1 rounded bg-[#1A2234]">
+                  {pick.ob_state}
+                </span>
+              )}
+            </div>
             <div className="text-[#F8FAFC] font-semibold">{pick.zone_low.toFixed(1)} – {pick.zone_high.toFixed(1)}</div>
+            {pick.ob_formed_at && (
+              <div className="text-[9px] text-[#94A3B8] mt-0.5 flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5 text-[#38BDF8]" />
+                <span>{formatMarketTime(pick.ob_formed_at)} ({formatTimeAgo(pick.ob_formed_at)})</span>
+              </div>
+            )}
           </div>
           <div>
             <div className="text-[10px] text-[#64748B]">7. {isBull ? "STOP (S1)" : "STOP (R1)"}</div>
@@ -117,8 +131,26 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
         {/* Candlestick Chart View */}
         <div className="flex-1 bg-[#0B0E14] border border-[#1E293B] rounded-lg p-3 flex flex-col min-h-[350px]">
           <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2 px-1 font-mono">
-            <span>5-Minute Completed Bars</span>
-            <span className="text-[#10B981] font-semibold">Zone: ACTIVE ORDER BLOCK</span>
+            <div className="flex items-center gap-2">
+              <span>5-Minute Completed Bars</span>
+              {pick.ob_formed_at && (
+                <span className="text-[10px] text-[#64748B]">
+                  · Formed: <strong className="text-[#F8FAFC]">{formatMarketTimeWithSeconds(pick.ob_formed_at)}</strong>
+                  {pick.ob_confirmed_at && (
+                    <> (BOS: <strong className="text-[#38BDF8]">{formatMarketTime(pick.ob_confirmed_at)}</strong>)</>
+                  )}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[#10B981] font-semibold text-[11px]">
+                {pick.ob_state || "ACTIVE"} ORDER BLOCK
+              </span>
+              {pick.ob_formed_at && (
+                <span className="text-[10px] text-[#64748B]">· {formatTimeAgo(pick.ob_formed_at)}</span>
+              )}
+            </div>
           </div>
           <div className="flex-1">
             <PriceChart
@@ -128,6 +160,8 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
               invalidationLevel={pick.support_1}
               targetLevel={pick.resistance_1}
               isBullish={isBull}
+              obFormedAt={pick.ob_formed_at}
+              obConfirmedAt={pick.ob_confirmed_at}
             />
           </div>
         </div>

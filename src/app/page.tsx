@@ -79,6 +79,9 @@ export default function DashboardPage() {
                   support_1: chartData.invalidation_level ?? prev.support_1,
                   resistance_1: chartData.target_level ?? prev.resistance_1,
                   vwap: chartData.vwap ?? prev.vwap,
+                  ob_formed_at: chartData.ob_formed_at ?? prev.ob_formed_at,
+                  ob_confirmed_at: chartData.ob_confirmed_at ?? prev.ob_confirmed_at,
+                  ob_state: (chartData.ob_state as any) ?? prev.ob_state,
                 }
               : null
           );

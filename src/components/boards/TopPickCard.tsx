@@ -3,7 +3,8 @@
 import React from "react";
 import { TopPickCardOutput } from "@/lib/types";
 import { DepthBricks } from "./DepthBricks";
-import { TrendingUp, TrendingDown, Crosshair } from "lucide-react";
+import { TrendingUp, TrendingDown, Crosshair, Clock } from "lucide-react";
+import { formatMarketTime, formatTimeAgo } from "@/lib/timeUtils";
 
 interface TopPickCardProps {
   pick: TopPickCardOutput;
@@ -90,15 +91,22 @@ export const TopPickCard: React.FC<TopPickCardProps> = ({
         </div>
 
         {/* Level Ladder & Trade Setup Footer */}
-        <div className="mt-3 pt-2.5 border-t border-[#1E293B] flex items-center justify-between text-[10px] font-mono">
-          <div className="flex items-center gap-2.5 text-[#94A3B8]">
-            <div>
-              <span className="text-[#64748B]">OB: </span>
-              <span className="text-[#F8FAFC] font-semibold">{pick.zone_low.toFixed(1)}</span>
-            </div>
-            <div>
-              <span className="text-[#64748B]">{isBull ? "S1: " : "R1: "}</span>
-              <span className="text-amber-400 font-semibold">{pick.support_1.toFixed(1)}</span>
+        <div className="mt-2.5 pt-2 border-t border-[#1E293B] flex flex-col gap-1.5 font-mono">
+          <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center gap-1.5 text-[#94A3B8]">
+              <Clock className="w-3 h-3 text-[#38BDF8]" />
+              <span className="text-[#64748B]">OB:</span>
+              <span className="text-[#F8FAFC] font-semibold">
+                {pick.ob_formed_at ? formatMarketTime(pick.ob_formed_at) : pick.zone_low.toFixed(1)}
+              </span>
+              {pick.ob_formed_at && (
+                <span className="text-[#64748B] text-[9px]">({formatTimeAgo(pick.ob_formed_at)})</span>
+              )}
+              {pick.ob_state && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-[#1A2234] border border-[#1E293B] text-emerald-400 font-bold">
+                  {pick.ob_state}
+                </span>
+              )}
             </div>
             <div>
               <span className="text-[#64748B]">R:R: </span>
@@ -106,18 +114,31 @@ export const TopPickCard: React.FC<TopPickCardProps> = ({
             </div>
           </div>
 
-          {onTrade && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onTrade(pick);
-              }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#1A2234] hover:bg-[#38BDF8]/20 border border-[#1E293B] hover:border-[#38BDF8]/50 text-[#38BDF8] active:scale-[0.95] transition-all font-sans font-semibold text-[11px]"
-            >
-              <Crosshair className="w-3 h-3" />
-              <span>Trade</span>
-            </button>
-          )}
+          <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center gap-2.5 text-[#94A3B8]">
+              <div>
+                <span className="text-[#64748B]">Zone: </span>
+                <span className="text-[#F8FAFC] font-semibold">{pick.zone_low.toFixed(1)} - {pick.zone_high.toFixed(1)}</span>
+              </div>
+              <div>
+                <span className="text-[#64748B]">{isBull ? "SL: " : "SL: "}</span>
+                <span className="text-amber-400 font-semibold">{pick.support_1.toFixed(1)}</span>
+              </div>
+            </div>
+
+            {onTrade && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTrade(pick);
+                }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1A2234] hover:bg-[#38BDF8]/20 border border-[#1E293B] hover:border-[#38BDF8]/50 text-[#38BDF8] active:scale-[0.95] transition-all font-sans font-semibold text-[10px]"
+              >
+                <Crosshair className="w-3 h-3" />
+                <span>Trade</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -148,6 +169,17 @@ export const TopPickCard: React.FC<TopPickCardProps> = ({
       </div>
 
       <DepthBricks ltp={pick.ltp} high={pick.resistance_1} low={pick.support_1} />
+
+      <div className="flex items-center justify-between text-[9px] mt-2 pt-1.5 border-t border-[#1E293B]/70 font-mono text-[#94A3B8]">
+        <div className="flex items-center gap-1">
+          <Clock className="w-2.5 h-2.5 text-[#38BDF8]" />
+          <span>OB: {pick.ob_formed_at ? formatMarketTime(pick.ob_formed_at) : pick.zone_low.toFixed(0)}</span>
+          {pick.ob_state && (
+            <span className="text-[8px] px-1 rounded bg-[#1A2234] text-emerald-400 font-semibold">{pick.ob_state}</span>
+          )}
+        </div>
+        <span className="text-[#38BDF8] font-bold">1:{pick.risk_reward}</span>
+      </div>
     </div>
   );
 };

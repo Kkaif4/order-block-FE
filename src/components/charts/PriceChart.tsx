@@ -7,6 +7,7 @@ import {
   CandlestickSeries,
   CandlestickData,
   Time,
+  createSeriesMarkers,
 } from "lightweight-charts";
 import { Candle5m } from "@/lib/types";
 
@@ -17,6 +18,8 @@ interface PriceChartProps {
   invalidationLevel?: number;
   targetLevel?: number;
   isBullish?: boolean;
+  obFormedAt?: string | null;
+  obConfirmedAt?: string | null;
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({
@@ -26,6 +29,8 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   invalidationLevel,
   targetLevel,
   isBullish = true,
+  obFormedAt,
+  obConfirmedAt,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -85,6 +90,67 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
     if (formattedData.length > 0) {
       candleSeries.setData(formattedData);
+
+      // Add markers for Order Block generation (origin candle) and BOS confirmation
+      interface SeriesMarker {
+        time: Time;
+        position: "aboveBar" | "belowBar" | "inBar";
+        color: string;
+        shape: "circle" | "square" | "arrowUp" | "arrowDown";
+        text: string;
+      }
+      const markers: SeriesMarker[] = [];
+      const candleTimes = new Set(formattedData.map((d) => d.time as number));
+
+      const findClosestCandleTime = (isoString?: string | null): Time | null => {
+        if (!isoString || formattedData.length === 0) return null;
+        const targetSec = Math.floor(new Date(isoString).getTime() / 1000);
+        if (isNaN(targetSec) || targetSec <= 0) return null;
+
+        if (candleTimes.has(targetSec)) return targetSec as Time;
+
+        let closest: number | null = null;
+        let minDiff = 1800; // within 30m window
+        for (const d of formattedData) {
+          const diff = Math.abs((d.time as number) - targetSec);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = d.time as number;
+          }
+        }
+        return closest !== null ? (closest as Time) : null;
+      };
+
+      const formedTime = findClosestCandleTime(obFormedAt);
+      if (formedTime) {
+        markers.push({
+          time: formedTime,
+          position: isBullish ? "belowBar" : "aboveBar",
+          color: isBullish ? "#10B981" : "#EF4444",
+          shape: isBullish ? "arrowUp" : "arrowDown",
+          text: "OB Base",
+        });
+      }
+
+      const confirmedTime = findClosestCandleTime(obConfirmedAt);
+      if (confirmedTime && confirmedTime !== formedTime) {
+        markers.push({
+          time: confirmedTime,
+          position: isBullish ? "aboveBar" : "belowBar",
+          color: "#38BDF8",
+          shape: "square",
+          text: "BOS Break",
+        });
+      }
+
+      if (markers.length > 0) {
+        markers.sort((a, b) => (a.time as number) - (b.time as number));
+        try {
+          createSeriesMarkers(candleSeries, markers);
+        } catch (err) {
+          console.warn("Failed to set chart markers:", err);
+        }
+      }
     }
 
     // Overlay horizontal lines for S1, Z, and Targets
