@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { TopPickCardOutput } from "@/lib/types";
+import { api } from "@/lib/api";
 import { X, Crosshair, TrendingUp, TrendingDown, ShieldCheck, AlertCircle } from "lucide-react";
 
 interface OrderModalProps {
@@ -36,23 +37,18 @@ export function OrderModal({ pick, isOpen, onClose, onOrderSuccess }: OrderModal
     setStatusMessage(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/execution/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symbol: pick.symbol,
-          side: side,
-          quantity: Number(quantity),
-          price: Number(price),
-          order_type: "MARKET",
-          stop_loss: Number(stopLoss),
-          target: Number(target),
-        }),
+      const data = await api.placeOrder({
+        symbol: pick.symbol,
+        side: side,
+        quantity: Number(quantity),
+        price: Number(price),
+        order_type: "MARKET",
+        stop_loss: Number(stopLoss),
+        target: Number(target),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Order execution rejected by RMS.");
+      if (!data.success) {
+        throw new Error("Order execution rejected by RMS.");
       }
 
       setStatusMessage(`Order FILLED for ${quantity} shares of ${pick.symbol} at ₹${data.data.fill_price}!`);

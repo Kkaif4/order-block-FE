@@ -11,16 +11,15 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BoardSnapshot, WebSocketConnectionState } from "@/lib/types";
+import { WS_BASE_URL, api } from "@/lib/api";
 
 interface UseOrderBlockSocketOptions {
   wsUrl?: string;
-  fallbackPollUrl?: string;
   pollIntervalMs?: number;
 }
 
 export function useOrderBlockSocket({
-  wsUrl = "ws://localhost:8000/ws/telemetry",
-  fallbackPollUrl = "http://localhost:8000/api/boards",
+  wsUrl = WS_BASE_URL,
   pollIntervalMs = 3000,
 }: UseOrderBlockSocketOptions = {}) {
   const [data, setData] = useState<BoardSnapshot | null>(null);
@@ -32,11 +31,10 @@ export function useOrderBlockSocket({
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageTimeRef = useRef<number | null>(null);
 
-  // Fallback REST fetcher using promise resolution
+  // Fallback REST fetcher using centralized API client
   const fetchSnapshotViaHttp = useCallback(() => {
-    fetch(fallbackPollUrl, { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((snap: BoardSnapshot | null) => {
+    api.getBoards()
+      .then((snap: BoardSnapshot) => {
         if (snap) {
           setData(snap);
           lastMessageTimeRef.current = Date.now();
@@ -45,7 +43,7 @@ export function useOrderBlockSocket({
       .catch(() => {
         // Suppress network errors during polling
       });
-  }, [fallbackPollUrl]);
+  }, []);
 
   // Declare scheduleReconnectRef first
   const scheduleReconnectRef = useRef<() => void>(() => {});

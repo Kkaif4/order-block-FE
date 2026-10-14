@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { TopPickCardOutput, Candle5m } from "@/lib/types";
 import { useOrderBlockSocket } from "@/lib/useOrderBlockSocket";
+import { api } from "@/lib/api";
 import { HeaderTelemetryBar } from "@/components/telemetry/HeaderTelemetryBar";
 import { AccountSummaryBar } from "@/components/execution/AccountSummaryBar";
 import { OrderModal } from "@/components/execution/OrderModal";
@@ -66,24 +67,21 @@ export default function DashboardPage() {
 
       // Fetch complete 5m candles and Order Block boundaries
       try {
-        const res = await fetch(`http://localhost:8000/api/stock/${encodeURIComponent(symbol)}/chart`);
-        if (res.ok) {
-          const chartData = await res.json();
-          if (chartData.candles && chartData.candles.length > 0) {
-            setInspectCandles(chartData.candles);
-            setSelectedPick((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    zone_high: chartData.zone_high ?? prev.zone_high,
-                    zone_low: chartData.zone_low ?? prev.zone_low,
-                    support_1: chartData.invalidation_level ?? prev.support_1,
-                    resistance_1: chartData.target_level ?? prev.resistance_1,
-                    vwap: chartData.vwap ?? prev.vwap,
-                  }
-                : null
-            );
-          }
+        const chartData = await api.getStockChart(symbol);
+        if (chartData && chartData.candles && chartData.candles.length > 0) {
+          setInspectCandles(chartData.candles);
+          setSelectedPick((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  zone_high: chartData.zone_high ?? prev.zone_high,
+                  zone_low: chartData.zone_low ?? prev.zone_low,
+                  support_1: chartData.invalidation_level ?? prev.support_1,
+                  resistance_1: chartData.target_level ?? prev.resistance_1,
+                  vwap: chartData.vwap ?? prev.vwap,
+                }
+              : null
+          );
         }
       } catch (err) {
         console.error("Failed to load chart for", symbol, err);

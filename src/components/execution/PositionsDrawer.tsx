@@ -9,6 +9,8 @@ interface PositionsDrawerProps {
   onClose: () => void;
 }
 
+import { api } from "@/lib/api";
+
 export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
   const [positions, setPositions] = useState<PositionRecord[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -18,17 +20,11 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
   const fetchPositionsAndOrders = useCallback(async () => {
     try {
       const [posRes, ordRes] = await Promise.all([
-        fetch("http://localhost:8000/api/execution/positions", { cache: "no-store" }),
-        fetch("http://localhost:8000/api/execution/orders", { cache: "no-store" }),
+        api.getPositions(),
+        api.getOrders(),
       ]);
-      if (posRes.ok) {
-        const pd = await posRes.json();
-        setPositions(pd.data || []);
-      }
-      if (ordRes.ok) {
-        const od = await ordRes.json();
-        setOrders(od.data || []);
-      }
+      setPositions(posRes.data || []);
+      setOrders(ordRes.data || []);
     } catch (e) {
       console.warn("Failed to fetch positions/orders:", e);
     }
@@ -55,16 +51,12 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
   const handleClosePosition = async (pos: PositionRecord) => {
     setLoading(true);
     try {
-      await fetch("http://localhost:8000/api/execution/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symbol: pos.symbol,
-          side: pos.side === "LONG" ? "SELL" : "BUY",
-          quantity: pos.quantity,
-          price: pos.current_price,
-          order_type: "MARKET",
-        }),
+      await api.placeOrder({
+        symbol: pos.symbol,
+        side: pos.side === "LONG" ? "SELL" : "BUY",
+        quantity: pos.quantity,
+        price: pos.current_price,
+        order_type: "MARKET",
       });
       await fetchPositionsAndOrders();
     } catch (e) {

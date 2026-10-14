@@ -17,6 +17,8 @@ interface BrokerHealth {
   expires_at_utc: string | null;
 }
 
+import { api, SystemHealthResponse } from "@/lib/api";
+
 export function HeaderTelemetryBar({
   wsStatus,
   syncQuality = "ACCEPTED",
@@ -26,9 +28,8 @@ export function HeaderTelemetryBar({
   const [brokerHealth, setBrokerHealth] = useState<BrokerHealth | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/health")
-      .then((res) => res.json())
-      .then((d) => {
+    api.getHealth()
+      .then((d: SystemHealthResponse) => {
         if (d.broker_auth) {
           setBrokerHealth(d.broker_auth);
         }

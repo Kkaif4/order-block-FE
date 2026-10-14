@@ -9,6 +9,8 @@ interface AccountSummaryBarProps {
   onKillSwitchTriggered?: () => void;
 }
 
+import { api } from "@/lib/api";
+
 export function AccountSummaryBar({
   onOpenPositions,
   onKillSwitchTriggered,
@@ -18,8 +20,7 @@ export function AccountSummaryBar({
   const [showKillConfirm, setShowKillConfirm] = useState(false);
 
   const fetchAccount = useCallback(() => {
-    fetch("http://localhost:8000/api/execution/account", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
+    api.getAccountSummary()
       .then((d) => {
         if (d?.data) {
           setAccount(d.data);
@@ -37,10 +38,8 @@ export function AccountSummaryBar({
   const handleKillSwitch = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/execution/kill-switch", {
-        method: "POST",
-      });
-      if (res.ok) {
+      const res = await api.triggerKillSwitch();
+      if (res.success) {
         setShowKillConfirm(false);
         fetchAccount();
         onKillSwitchTriggered?.();
@@ -54,7 +53,7 @@ export function AccountSummaryBar({
 
   const handleResetKillSwitch = async () => {
     try {
-      await fetch("http://localhost:8000/api/execution/kill-switch/reset", { method: "POST" });
+      await api.resetKillSwitch();
       fetchAccount();
     } catch (e) {
       console.error("Reset failed:", e);
