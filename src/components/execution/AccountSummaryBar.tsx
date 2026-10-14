@@ -31,7 +31,7 @@ export function AccountSummaryBar({
 
   useEffect(() => {
     fetchAccount();
-    const interval = setInterval(fetchAccount, 2500);
+    const interval = setInterval(fetchAccount, 10000);
     return () => clearInterval(interval);
   }, [fetchAccount]);
 
