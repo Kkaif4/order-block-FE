@@ -263,7 +263,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [candles, zoneHigh, zoneLow, invalidationLevel, targetLevel, isBullish]);
+  }, [candles, zoneHigh, zoneLow, invalidationLevel, targetLevel, isBullish, obFormedAt, obConfirmedAt]);
 
   return (
     <div className="relative w-full h-80 rounded overflow-hidden">

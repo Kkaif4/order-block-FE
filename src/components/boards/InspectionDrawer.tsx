@@ -186,12 +186,22 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
                 ACTIVE POSITION ({openPos.side})
               </span>
             ) : latestTrade ? (
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${
                 latestTrade.hit_type === "TARGET"
                   ? "bg-emerald-500/10 border-emerald-500/20 text-[#10B981]"
                   : "bg-red-500/10 border-red-500/20 text-[#EF4444]"
               }`}>
-                {latestTrade.hit_type === "TARGET" ? "TARGET HIT 🎯" : "STOP LOSS HIT 🛑"}
+                {latestTrade.hit_type === "TARGET" ? (
+                  <>
+                    <Target className="w-3 h-3 text-[#10B981]" />
+                    <span>TARGET HIT</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-3 h-3 text-[#EF4444]" />
+                    <span>STOP LOSS HIT</span>
+                  </>
+                )}
               </span>
             ) : (
               <span className="text-[10px] text-[#64748B]">PENDING FILL</span>

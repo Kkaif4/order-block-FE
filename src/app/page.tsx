@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { TopPickCardOutput, Candle5m } from "@/lib/types";
+import { TopPickCardOutput, Candle5m, ZoneState } from "@/lib/types";
 import { useOrderBlockSocket } from "@/lib/useOrderBlockSocket";
 import { api } from "@/lib/api";
 import { HeaderTelemetryBar } from "@/components/telemetry/HeaderTelemetryBar";
@@ -10,7 +10,6 @@ import { OrderModal } from "@/components/execution/OrderModal";
 import { PositionsDrawer } from "@/components/execution/PositionsDrawer";
 import { BeeSwarmBreadth } from "@/components/boards/BeeSwarmBreadth";
 import { TopPickCard } from "@/components/boards/TopPickCard";
-import { DepthBricks } from "@/components/boards/DepthBricks";
 import { InspectionDrawer } from "@/components/boards/InspectionDrawer";
 import { TrendingUp, TrendingDown, Search } from "lucide-react";
 
@@ -81,7 +80,7 @@ export default function DashboardPage() {
                   vwap: chartData.vwap ?? prev.vwap,
                   ob_formed_at: chartData.ob_formed_at ?? prev.ob_formed_at,
                   ob_confirmed_at: chartData.ob_confirmed_at ?? prev.ob_confirmed_at,
-                  ob_state: (chartData.ob_state as any) ?? prev.ob_state,
+                  ob_state: (chartData.ob_state as ZoneState) ?? prev.ob_state,
                   chart_total_obs: chartData.chart_total_obs ?? prev.chart_total_obs,
                   chart_fresh_obs: chartData.chart_fresh_obs ?? prev.chart_fresh_obs,
                   chart_mitigated_obs: chartData.chart_mitigated_obs ?? prev.chart_mitigated_obs,
@@ -100,20 +99,6 @@ export default function DashboardPage() {
     setTradePick(pick);
     setOrderModalOpen(true);
   };
-
-  const filteredBullishBoard = useMemo(() => {
-    if (!data) return [];
-    if (!searchQuery) return data.bullish_board;
-    const q = searchQuery.toUpperCase();
-    return data.bullish_board.filter((s) => s.symbol.includes(q) || s.sector.includes(q));
-  }, [data, searchQuery]);
-
-  const filteredBearishBoard = useMemo(() => {
-    if (!data) return [];
-    if (!searchQuery) return data.bearish_board;
-    const q = searchQuery.toUpperCase();
-    return data.bearish_board.filter((s) => s.symbol.includes(q) || s.sector.includes(q));
-  }, [data, searchQuery]);
 
   const filteredBullishPicks = useMemo(() => {
     if (!data) return [];
