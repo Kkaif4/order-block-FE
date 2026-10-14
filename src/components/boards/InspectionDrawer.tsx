@@ -142,14 +142,21 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[#10B981] font-semibold text-[11px]">
-                {pick.ob_state || "ACTIVE"} ORDER BLOCK
-              </span>
-              {pick.ob_formed_at && (
-                <span className="text-[10px] text-[#64748B]">· {formatTimeAgo(pick.ob_formed_at)}</span>
+            <div className="flex items-center gap-2">
+              {pick.chart_total_obs !== undefined && pick.chart_total_obs > 0 && (
+                <span className="text-[10px] text-[#94A3B8] px-1.5 py-0.5 rounded bg-[#1A2234] border border-[#1E293B]">
+                  Chart OBs: <strong className="text-[#38BDF8]">{pick.chart_total_obs}</strong> ({pick.chart_fresh_obs || 0} Fresh, {pick.chart_mitigated_obs || 0} Mitigated)
+                </span>
               )}
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[#10B981] font-semibold text-[11px]">
+                  {pick.ob_state || "ACTIVE"} ORDER BLOCK
+                </span>
+                {pick.ob_formed_at && (
+                  <span className="text-[10px] text-[#64748B]">· {formatTimeAgo(pick.ob_formed_at)}</span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex-1">

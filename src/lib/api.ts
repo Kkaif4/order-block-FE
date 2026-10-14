@@ -157,4 +157,59 @@ export const api = {
       method: "POST",
     });
   },
+
+  /**
+   * Close a specific open position manually
+   */
+  async closePosition(symbol: string): Promise<{ success: boolean; data: OrderRecord }> {
+    return apiFetch<{ success: boolean; data: OrderRecord }>(`/api/execution/positions/${encodeURIComponent(symbol)}/close`, {
+      method: "POST",
+    });
+  },
+
+  /**
+   * Historical Trade Analytics with Target/SL hit timing & OB counts
+   */
+  async getTradeAnalytics(params?: { symbol?: string; hitType?: string; limit?: number }): Promise<{
+    success: boolean;
+    count: number;
+    data: import("@/lib/types").TradeAnalyticsRecord[];
+  }> {
+    const query = new URLSearchParams();
+    if (params?.symbol) query.set("symbol", params.symbol);
+    if (params?.hitType) query.set("hit_type", params.hitType);
+    if (params?.limit) query.set("limit", params.limit.toString());
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return apiFetch<{
+      success: boolean;
+      count: number;
+      data: import("@/lib/types").TradeAnalyticsRecord[];
+    }>(`/api/analytics/trades${qs}`);
+  },
+
+  /**
+   * Aggregated Trade Performance & Order Block Density Correlation
+   */
+  async getTradeSummary(): Promise<{
+    success: boolean;
+    data: import("@/lib/types").TradeSummaryResponse;
+  }> {
+    return apiFetch<{
+      success: boolean;
+      data: import("@/lib/types").TradeSummaryResponse;
+    }>("/api/analytics/summary");
+  },
+
+  /**
+   * Count of Order Blocks placed on the chart for a given stock
+   */
+  async getStockObStats(symbol: string): Promise<{
+    success: boolean;
+    data: import("@/lib/types").StockObStatsResponse;
+  }> {
+    return apiFetch<{
+      success: boolean;
+      data: import("@/lib/types").StockObStatsResponse;
+    }>(`/api/stock/${encodeURIComponent(symbol)}/ob-stats`);
+  },
 };

@@ -107,6 +107,14 @@ export const TopPickCard: React.FC<TopPickCardProps> = ({
                   {pick.ob_state}
                 </span>
               )}
+              {Boolean(pick.chart_total_obs && pick.chart_total_obs > 0) && (
+                <span
+                  title={`${pick.chart_fresh_obs || 0} Fresh, ${pick.chart_mitigated_obs || 0} Mitigated`}
+                  className="text-[9px] px-1 py-0.2 rounded bg-[#1A2234] text-[#38BDF8]"
+                >
+                  {pick.chart_total_obs} OBs
+                </span>
+              )}
             </div>
             <div>
               <span className="text-[#64748B]">R:R: </span>

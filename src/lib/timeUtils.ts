@@ -64,3 +64,14 @@ export function formatTimeAgo(isoString?: string | null): string {
     return "";
   }
 }
+
+export function formatDuration(seconds?: number | null): string {
+  if (!seconds || seconds <= 0) return "< 1s";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const remSec = seconds % 60;
+  if (mins < 60) return remSec > 0 ? `${mins}m ${remSec}s` : `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return `${hours}h ${remMins}m`;
+}

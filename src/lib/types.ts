@@ -85,6 +85,10 @@ export interface TopPickCardOutput {
   ob_formed_at?: string;
   ob_confirmed_at?: string;
   ob_state?: ZoneState;
+  chart_total_obs?: number;
+  chart_fresh_obs?: number;
+  chart_mitigated_obs?: number;
+  chart_invalidated_obs?: number;
 }
 
 export interface BeeSwarmDot {
@@ -166,6 +170,16 @@ export interface PositionRecord {
   status: "OPEN" | "CLOSED";
   opened_at: string;
   closed_at?: string | null;
+  mfe?: number;
+  mae?: number;
+  chart_total_obs?: number;
+  chart_fresh_obs?: number;
+  chart_mitigated_obs?: number;
+  chart_invalidated_obs?: number;
+  active_ob_id?: string | null;
+  active_ob_formed_at?: string | null;
+  active_ob_confirmed_at?: string | null;
+  active_ob_state?: ZoneState | null;
 }
 
 export interface StockChartResponse {
@@ -176,5 +190,68 @@ export interface StockChartResponse {
   invalidation_level: number;
   target_level: number;
   vwap: number;
+  ob_formed_at?: string | null;
+  ob_confirmed_at?: string | null;
+  ob_state?: ZoneState | null;
+  chart_total_obs?: number;
+  chart_fresh_obs?: number;
+  chart_mitigated_obs?: number;
+  chart_invalidated_obs?: number;
   order_blocks: OrderBlockZone[];
+}
+
+export interface TradeAnalyticsRecord {
+  trade_id: string;
+  position_id?: string;
+  order_id?: string;
+  symbol: string;
+  side: "LONG" | "SHORT";
+  entry_time: string;
+  entry_price: number;
+  quantity: number;
+  target_price: number;
+  stop_loss_price: number;
+  exit_time: string;
+  exit_price: number;
+  exit_reason: string;
+  hit_type: "TARGET" | "STOP_LOSS" | "MANUAL";
+  realized_pnl: number;
+  return_pct: number;
+  r_multiple_achieved: number;
+  mfe: number;
+  mae: number;
+  holding_seconds: number;
+  chart_total_obs: number;
+  chart_fresh_obs: number;
+  chart_mitigated_obs: number;
+  chart_invalidated_obs: number;
+  active_ob_id?: string | null;
+  active_ob_formed_at?: string | null;
+  active_ob_confirmed_at?: string | null;
+  active_ob_state?: ZoneState | null;
+  metadata?: Record<string, any>;
+}
+
+export interface TradeSummaryResponse {
+  total_trades: number;
+  target_hits: number;
+  stop_loss_hits: number;
+  manual_closes: number;
+  win_rate_pct: number;
+  total_realized_pnl: number;
+  avg_r_multiple: number;
+  avg_obs_winning_trades: number;
+  avg_obs_losing_trades: number;
+}
+
+export interface StockObStatsResponse {
+  symbol: string;
+  chart_total_obs: number;
+  chart_fresh_obs: number;
+  chart_mitigated_obs: number;
+  chart_invalidated_obs: number;
+  active_ob_id?: string | null;
+  active_ob_formed_at?: string | null;
+  active_ob_confirmed_at?: string | null;
+  active_ob_state?: ZoneState | null;
 }
