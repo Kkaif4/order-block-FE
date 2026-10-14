@@ -24,9 +24,13 @@ export default function DashboardPage() {
   const [inspectCandles, setInspectCandles] = useState<Candle5m[]>([]);
   const [activeBoardFilter, setActiveBoardFilter] = useState<"ALL" | "BULLISH" | "BEARISH">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const inspectingSymbolRef = React.useRef<string | null>(null);
 
   const handleInspect = async (symbol: string) => {
     if (!data) return;
+    if (inspectingSymbolRef.current === symbol) return;
+    inspectingSymbolRef.current = symbol;
+
     const found =
       data.bullish_picks.find((p) => p.symbol === symbol) ||
       data.bearish_picks.find((p) => p.symbol === symbol);
@@ -91,7 +95,11 @@ export default function DashboardPage() {
         }
       } catch (err) {
         console.error("Failed to load chart for", symbol, err);
+      } finally {
+        inspectingSymbolRef.current = null;
       }
+    } else {
+      inspectingSymbolRef.current = null;
     }
   };
 

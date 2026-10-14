@@ -198,7 +198,7 @@ export interface StockChartResponse {
   chart_mitigated_obs?: number;
   chart_invalidated_obs?: number;
   order_blocks: OrderBlockZone[];
-  auto_paper_trade?: Record<string, any> | null;
+  auto_paper_trade?: Record<string, unknown> | null;
 }
 
 export interface SymbolAnalyticsResponse {
@@ -237,7 +237,7 @@ export interface TradeAnalyticsRecord {
   active_ob_formed_at?: string | null;
   active_ob_confirmed_at?: string | null;
   active_ob_state?: ZoneState | null;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TradeSummaryResponse {

@@ -23,16 +23,11 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
   onTrade,
 }) => {
   const [analytics, setAnalytics] = useState<SymbolAnalyticsResponse | null>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!isOpen || !pick?.symbol) {
-      setAnalytics(null);
-      return;
-    }
+    if (!isOpen || !pick?.symbol) return;
 
     let isMounted = true;
-    setLoadingAnalytics(true);
     apiClient
       .getSymbolAnalytics(pick.symbol)
       .then((data) => {
@@ -40,13 +35,11 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
       })
       .catch((err) => {
         console.warn("Failed to load symbol analytics:", err);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingAnalytics(false);
       });
 
     return () => {
       isMounted = false;
+      setAnalytics(null);
     };
   }, [isOpen, pick?.symbol]);
 

@@ -15,9 +15,6 @@ import {
   Target,
   ShieldAlert,
   BarChart3,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
   Box,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -40,40 +37,60 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
   const [activeTab, setActiveTab] = useState<"POSITIONS" | "ORDERS" | "ANALYTICS">("POSITIONS");
   const [hitTypeFilter, setHitTypeFilter] = useState<"ALL" | "TARGET" | "STOP_LOSS">("ALL");
   const [loading, setLoading] = useState(false);
+  const isFetchingRef = React.useRef(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forcedTab?: "POSITIONS" | "ORDERS" | "ANALYTICS") => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    const currentTab = forcedTab || activeTab;
+
     try {
-      const [posRes, ordRes, tradesRes, sumRes] = await Promise.all([
-        api.getPositions().catch(() => ({ data: [] })),
-        api.getOrders().catch(() => ({ data: [] })),
-        api.getTradeAnalytics({ limit: 100 }).catch(() => ({ data: [] })),
-        api.getTradeSummary().catch(() => ({ data: null })),
-      ]);
-      setPositions(posRes.data || []);
-      setOrders(ordRes.data || []);
-      setTrades(tradesRes.data || []);
-      if (sumRes.data) {
-        setSummary(sumRes.data);
+      if (currentTab === "ANALYTICS") {
+        const [tradesRes, sumRes] = await Promise.all([
+          api.getTradeAnalytics({ limit: 100 }).catch(() => ({ data: [] })),
+          api.getTradeSummary().catch(() => ({ data: null })),
+        ]);
+        setTrades(tradesRes.data || []);
+        if (sumRes.data) {
+          setSummary(sumRes.data);
+        }
+      } else if (currentTab === "ORDERS") {
+        const ordRes = await api.getOrders().catch(() => ({ data: [] }));
+        setOrders(ordRes.data || []);
+      } else {
+        const [posRes, ordRes] = await Promise.all([
+          api.getPositions().catch(() => ({ data: [] })),
+          api.getOrders().catch(() => ({ data: [] })),
+        ]);
+        setPositions(posRes.data || []);
+        setOrders(ordRes.data || []);
       }
     } catch (e) {
       console.warn("Failed to fetch execution & analytics data:", e);
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    let active = true;
-    const load = async () => {
-      if (active) {
+    let isMounted = true;
+    void (async () => {
+      if (isMounted) {
         await fetchData();
       }
-    };
-    load();
+    })();
 
-    const interval = setInterval(load, 3000);
+    // Only active tab is polled to eliminate duplicate background fetches
+    const interval = setInterval(() => {
+      if (isMounted) {
+        void fetchData();
+      }
+    }, 3000);
+
     return () => {
-      active = false;
+      isMounted = false;
       clearInterval(interval);
     };
   }, [isOpen, fetchData]);

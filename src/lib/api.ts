@@ -60,7 +60,7 @@ export interface StockChartResponse {
   chart_mitigated_obs?: number;
   chart_invalidated_obs?: number;
   order_blocks: OrderBlockZone[];
-  auto_paper_trade?: Record<string, any> | null;
+  auto_paper_trade?: Record<string, unknown> | null;
 }
 
 export interface OrderPlacementPayload {
@@ -73,69 +73,136 @@ export interface OrderPlacementPayload {
   target?: number;
 }
 
-/**
- * Generic fetch wrapper with standard error handling and no-cache policy
- */
-async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const res = await fetch(url, {
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    },
-    ...options,
-  });
+export interface ApiFetchOptions extends RequestInit {
+  forceRefresh?: boolean;
+}
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    throw new Error(`API Error [${res.status}] ${endpoint}: ${errorText}`);
+// In-flight promise tracker for deduplication of concurrent identical GET requests
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+// Short-lived response cache to prevent duplicate requests across rapid re-renders / mountings
+const responseCache = new Map<string, { timestamp: number; data: unknown }>();
+const CACHE_TTL_MS = 1500; // 1.5 seconds deduplication window
+
+export function invalidateApiCache(pattern?: string) {
+  if (!pattern) {
+    responseCache.clear();
+    return;
+  }
+  for (const key of responseCache.keys()) {
+    if (key.includes(pattern)) {
+      responseCache.delete(key);
+    }
+  }
+}
+
+/**
+ * Generic fetch wrapper with standard error handling, deduplication of concurrent in-flight GET requests,
+ * and short-lived caching for duplicate prevention.
+ */
+async function apiFetch<T>(endpoint: string, options?: ApiFetchOptions): Promise<T> {
+  const method = (options?.method || "GET").toUpperCase();
+  const url = `${API_BASE_URL}${endpoint}`;
+  const isGet = method === "GET";
+
+  // Check cache and in-flight requests for idempotent GET calls
+  if (isGet && !options?.forceRefresh) {
+    const cached = responseCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data as T;
+    }
+    const ongoing = inFlightRequests.get(url);
+    if (ongoing) {
+      return ongoing as Promise<T>;
+    }
   }
 
-  return res.json();
+  const executeFetch = async (): Promise<T> => {
+    try {
+      const fetchOptions = { ...options };
+      delete fetchOptions.forceRefresh;
+      const res = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(fetchOptions.headers || {}),
+        },
+        ...fetchOptions,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        throw new Error(`API Error [${res.status}] ${endpoint}: ${errorText}`);
+      }
+
+      const data = (await res.json()) as T;
+      if (isGet) {
+        responseCache.set(url, { timestamp: Date.now(), data });
+      } else {
+        // Invalidate execution and analytics caches on mutations
+        if (endpoint.includes("/execution")) {
+          invalidateApiCache("/execution");
+          invalidateApiCache("/analytics");
+        }
+      }
+      return data;
+    } finally {
+      if (isGet) {
+        inFlightRequests.delete(url);
+      }
+    }
+  };
+
+  if (isGet && !options?.forceRefresh) {
+    const promise = executeFetch();
+    inFlightRequests.set(url, promise as Promise<unknown>);
+    return promise;
+  }
+
+  return executeFetch();
 }
 
 export const api = {
   /**
    * Health & Broker Telemetry
    */
-  async getHealth(): Promise<SystemHealthResponse> {
-    return apiFetch<SystemHealthResponse>("/api/health");
+  async getHealth(options?: ApiFetchOptions): Promise<SystemHealthResponse> {
+    return apiFetch<SystemHealthResponse>("/api/health", options);
   },
 
   /**
    * Complete Boards Snapshot (Bullish, Bearish, Picks, Breadth Dots)
    */
-  async getBoards(): Promise<BoardSnapshot> {
-    return apiFetch<BoardSnapshot>("/api/boards");
+  async getBoards(options?: ApiFetchOptions): Promise<BoardSnapshot> {
+    return apiFetch<BoardSnapshot>("/api/boards", options);
   },
 
   /**
    * 5m Candles & Detected Order Block Zones for a Stock
    */
-  async getStockChart(symbol: string): Promise<StockChartResponse> {
-    return apiFetch<StockChartResponse>(`/api/stock/${encodeURIComponent(symbol)}/chart`);
+  async getStockChart(symbol: string, options?: ApiFetchOptions): Promise<StockChartResponse> {
+    return apiFetch<StockChartResponse>(`/api/stock/${encodeURIComponent(symbol)}/chart`, options);
   },
 
   /**
    * Virtual Account Summary (Equity, Margin, Daily PnL, Kill-Switch)
    */
-  async getAccountSummary(): Promise<{ success: boolean; data: AccountSummary }> {
-    return apiFetch<{ success: boolean; data: AccountSummary }>("/api/execution/account");
+  async getAccountSummary(options?: ApiFetchOptions): Promise<{ success: boolean; data: AccountSummary }> {
+    return apiFetch<{ success: boolean; data: AccountSummary }>("/api/execution/account", options);
   },
 
   /**
    * Open Positions with Unrealized PnL
    */
-  async getPositions(): Promise<{ success: boolean; count: number; data: PositionRecord[] }> {
-    return apiFetch<{ success: boolean; count: number; data: PositionRecord[] }>("/api/execution/positions");
+  async getPositions(options?: ApiFetchOptions): Promise<{ success: boolean; count: number; data: PositionRecord[] }> {
+    return apiFetch<{ success: boolean; count: number; data: PositionRecord[] }>("/api/execution/positions", options);
   },
 
   /**
    * Order History
    */
-  async getOrders(): Promise<{ success: boolean; count: number; data: OrderRecord[] }> {
-    return apiFetch<{ success: boolean; count: number; data: OrderRecord[] }>("/api/execution/orders");
+  async getOrders(options?: ApiFetchOptions): Promise<{ success: boolean; count: number; data: OrderRecord[] }> {
+    return apiFetch<{ success: boolean; count: number; data: OrderRecord[] }>("/api/execution/orders", options);
   },
 
   /**
@@ -178,7 +245,10 @@ export const api = {
   /**
    * Historical Trade Analytics with Target/SL hit timing & OB counts
    */
-  async getTradeAnalytics(params?: { symbol?: string; hitType?: string; limit?: number }): Promise<{
+  async getTradeAnalytics(
+    params?: { symbol?: string; hitType?: string; limit?: number },
+    options?: ApiFetchOptions
+  ): Promise<{
     success: boolean;
     count: number;
     data: import("@/lib/types").TradeAnalyticsRecord[];
@@ -192,41 +262,42 @@ export const api = {
       success: boolean;
       count: number;
       data: import("@/lib/types").TradeAnalyticsRecord[];
-    }>(`/api/analytics/trades${qs}`);
+    }>(`/api/analytics/trades${qs}`, options);
   },
 
   /**
    * Aggregated Trade Performance & Order Block Density Correlation
    */
-  async getTradeSummary(): Promise<{
+  async getTradeSummary(options?: ApiFetchOptions): Promise<{
     success: boolean;
     data: import("@/lib/types").TradeSummaryResponse;
   }> {
     return apiFetch<{
       success: boolean;
       data: import("@/lib/types").TradeSummaryResponse;
-    }>("/api/analytics/summary");
+    }>("/api/analytics/summary", options);
   },
 
   /**
    * Count of Order Blocks placed on the chart for a given stock
    */
-  async getStockObStats(symbol: string): Promise<{
+  async getStockObStats(symbol: string, options?: ApiFetchOptions): Promise<{
     success: boolean;
     data: import("@/lib/types").StockObStatsResponse;
   }> {
     return apiFetch<{
       success: boolean;
       data: import("@/lib/types").StockObStatsResponse;
-    }>(`/api/stock/${encodeURIComponent(symbol)}/ob-stats`);
+    }>(`/api/stock/${encodeURIComponent(symbol)}/ob-stats`, options);
   },
 
   /**
    * Symbol specific 1-share paper trade status and history
    */
-  async getSymbolAnalytics(symbol: string): Promise<import("@/lib/types").SymbolAnalyticsResponse> {
+  async getSymbolAnalytics(symbol: string, options?: ApiFetchOptions): Promise<import("@/lib/types").SymbolAnalyticsResponse> {
     return apiFetch<import("@/lib/types").SymbolAnalyticsResponse>(
-      `/api/execution/analytics/${encodeURIComponent(symbol)}`
+      `/api/execution/analytics/${encodeURIComponent(symbol)}`,
+      options
     );
   },
 };
