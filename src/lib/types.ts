@@ -198,6 +198,14 @@ export interface StockChartResponse {
   chart_mitigated_obs?: number;
   chart_invalidated_obs?: number;
   order_blocks: OrderBlockZone[];
+  auto_paper_trade?: Record<string, any> | null;
+}
+
+export interface SymbolAnalyticsResponse {
+  success: boolean;
+  symbol: string;
+  open_position?: PositionRecord | null;
+  history: TradeAnalyticsRecord[];
 }
 
 export interface TradeAnalyticsRecord {

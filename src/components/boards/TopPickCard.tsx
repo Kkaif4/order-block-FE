@@ -103,7 +103,9 @@ export const TopPickCard: React.FC<TopPickCardProps> = ({
                 <span className="text-[#64748B] text-[9px]">({formatTimeAgo(pick.ob_formed_at)})</span>
               )}
               {pick.ob_state && (
-                <span className="text-[9px] px-1 py-0.2 rounded bg-[#1A2234] border border-[#1E293B] text-emerald-400 font-bold">
+                <span className={`text-[9px] px-1 py-0.2 rounded border font-bold ${
+                  isBull ? "bg-emerald-500/10 border-emerald-500/20 text-[#10B981]" : "bg-red-500/10 border-red-500/20 text-[#EF4444]"
+                }`}>
                   {pick.ob_state}
                 </span>
               )}
@@ -183,7 +185,9 @@ export const TopPickCard: React.FC<TopPickCardProps> = ({
           <Clock className="w-2.5 h-2.5 text-[#38BDF8]" />
           <span>OB: {pick.ob_formed_at ? formatMarketTime(pick.ob_formed_at) : pick.zone_low.toFixed(0)}</span>
           {pick.ob_state && (
-            <span className="text-[8px] px-1 rounded bg-[#1A2234] text-emerald-400 font-semibold">{pick.ob_state}</span>
+            <span className={`text-[8px] px-1 rounded font-semibold ${
+              isBull ? "bg-emerald-500/10 text-[#10B981]" : "bg-red-500/10 text-[#EF4444]"
+            }`}>{pick.ob_state}</span>
           )}
         </div>
         <span className="text-[#38BDF8] font-bold">1:{pick.risk_reward}</span>

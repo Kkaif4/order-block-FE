@@ -52,10 +52,40 @@ export const PriceChart: React.FC<PriceChartProps> = ({
         vertLines: { color: "#161C27" },
         horzLines: { color: "#161C27" },
       },
+      localization: {
+        dateFormat: "yyyy-MM-dd",
+        timeFormatter: (sec: number) => {
+          try {
+            return new Intl.DateTimeFormat("en-IN", {
+              timeZone: "Asia/Kolkata",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }).format(new Date(sec * 1000));
+          } catch {
+            return "";
+          }
+        },
+      },
       timeScale: {
         borderColor: "#1A212D",
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 6,
+        barSpacing: 9,
+        minBarSpacing: 4,
+        tickMarkFormatter: (sec: number) => {
+          try {
+            return new Intl.DateTimeFormat("en-IN", {
+              timeZone: "Asia/Kolkata",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }).format(new Date(sec * 1000));
+          } catch {
+            return "";
+          }
+        },
       },
       rightPriceScale: {
         borderColor: "#1A212D",
@@ -74,19 +104,23 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       wickDownColor: "#FF4D67",
     });
 
-    const formattedData: CandlestickData<Time>[] = candles
-      .map((c) => {
-        const timeVal = Math.floor(new Date(c.timestamp).getTime() / 1000);
-        return {
+    // Deduplicate and sort candles strictly ascending by timestamp
+    const candleMap = new Map<number, CandlestickData<Time>>();
+    for (const c of candles) {
+      const timeVal = Math.floor(new Date(c.timestamp).getTime() / 1000);
+      if (typeof timeVal === "number" && !isNaN(timeVal) && timeVal > 0) {
+        candleMap.set(timeVal, {
           time: timeVal as Time,
           open: c.open,
           high: c.high,
           low: c.low,
           close: c.close,
-        };
-      })
-      .filter((c) => typeof c.time === "number" && !isNaN(c.time) && c.time > 0)
-      .sort((a, b) => (a.time as number) - (b.time as number));
+        });
+      }
+    }
+    const formattedData: CandlestickData<Time>[] = Array.from(candleMap.values()).sort(
+      (a, b) => (a.time as number) - (b.time as number)
+    );
 
     if (formattedData.length > 0) {
       candleSeries.setData(formattedData);
@@ -176,22 +210,22 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     if (invalidationLevel) {
       candleSeries.createPriceLine({
         price: invalidationLevel,
-        color: "#FFB020",
+        color: isBullish ? "#FFB020" : "#FF4D67",
         lineWidth: 1,
         lineStyle: 2, // Dashed
         axisLabelVisible: true,
-        title: isBullish ? "S1 (STOP)" : "R1 (STOP)",
+        title: isBullish ? "STOP LOSS (S1)" : "STOP LOSS (R1)",
       });
     }
 
     if (targetLevel) {
       candleSeries.createPriceLine({
         price: targetLevel,
-        color: "#45B8FF",
+        color: "#10B981",
         lineWidth: 1,
         lineStyle: 1, // Dotted
         axisLabelVisible: true,
-        title: "TARGET R1",
+        title: isBullish ? "TARGET (R1)" : "TARGET (S1)",
       });
     }
 

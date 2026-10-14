@@ -82,6 +82,10 @@ export default function DashboardPage() {
                   ob_formed_at: chartData.ob_formed_at ?? prev.ob_formed_at,
                   ob_confirmed_at: chartData.ob_confirmed_at ?? prev.ob_confirmed_at,
                   ob_state: (chartData.ob_state as any) ?? prev.ob_state,
+                  chart_total_obs: chartData.chart_total_obs ?? prev.chart_total_obs,
+                  chart_fresh_obs: chartData.chart_fresh_obs ?? prev.chart_fresh_obs,
+                  chart_mitigated_obs: chartData.chart_mitigated_obs ?? prev.chart_mitigated_obs,
+                  chart_invalidated_obs: chartData.chart_invalidated_obs ?? prev.chart_invalidated_obs,
                 }
               : null
           );
@@ -176,7 +180,7 @@ export default function DashboardPage() {
                 : "text-[#94A3B8] hover:text-[#F8FAFC]"
             }`}
           >
-            All Boards ({data.published_bullish_count + data.published_bearish_count})
+            All Top Picks ({filteredBullishPicks.length + filteredBearishPicks.length})
           </button>
           <button
             onClick={() => setActiveBoardFilter("BULLISH")}
@@ -187,7 +191,7 @@ export default function DashboardPage() {
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Bullish Only ({data.published_bullish_count})</span>
+            <span>Bullish Top 20 ({filteredBullishPicks.length})</span>
           </button>
           <button
             onClick={() => setActiveBoardFilter("BEARISH")}
@@ -198,7 +202,7 @@ export default function DashboardPage() {
             }`}
           >
             <TrendingDown className="w-3.5 h-3.5" />
-            <span>Bearish Only ({data.published_bearish_count})</span>
+            <span>Bearish Top 20 ({filteredBearishPicks.length})</span>
           </button>
         </div>
 
@@ -235,16 +239,16 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Top Picks Hero Cards */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between text-[11px] font-mono text-[#94A3B8] mb-2 uppercase">
+            {/* Top Picks Hero Cards (Top 20 Exclusive View) */}
+            <div>
+              <div className="flex items-center justify-between text-[11px] font-mono text-[#94A3B8] mb-2.5 uppercase">
                 <span className="text-[#10B981] font-semibold flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                  Primary Focus · Top 20 Stocks
+                  High Conviction · Top 20 Bullish Stocks (R:R ≥ 1:2.0)
                 </span>
                 <span>Ranks #1 – #{filteredBullishPicks.length}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 max-h-[820px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 max-h-[860px] overflow-y-auto pr-1">
                 {filteredBullishPicks.map((pick) => (
                   <TopPickCard
                     key={pick.symbol}
@@ -253,42 +257,6 @@ export default function DashboardPage() {
                     onInspect={handleInspect}
                     onTrade={handleTrade}
                   />
-                ))}
-              </div>
-            </div>
-
-            {/* Bullish Candidates Table */}
-            <div className="border border-[#1E293B] rounded-lg overflow-hidden bg-[#0B0E14]">
-              <div className="bg-[#111622] px-3 py-2 border-b border-[#1E293B] grid grid-cols-12 text-[10px] font-mono text-[#64748B] uppercase">
-                <span className="col-span-1">#</span>
-                <span className="col-span-3">SYMBOL</span>
-                <span className="col-span-2 text-right">LTP</span>
-                <span className="col-span-2 text-right">% CHG</span>
-                <span className="col-span-4 pl-3">ORDER DEPTH</span>
-              </div>
-
-              <div className="divide-y divide-[#1E293B] max-h-80 overflow-y-auto">
-                {filteredBullishBoard.map((stock) => (
-                  <div
-                    key={stock.symbol}
-                    onClick={() => handleInspect(stock.symbol)}
-                    className="px-3 py-2 grid grid-cols-12 items-center text-xs hover:bg-[#1A2234] cursor-pointer transition-colors font-mono"
-                  >
-                    <span className="col-span-1 text-[#64748B]">{stock.rank}</span>
-                    <div className="col-span-3 flex items-center gap-1.5">
-                      <span className="font-bold text-[#F8FAFC] font-sans">{stock.symbol}</span>
-                      <span className="text-[9px] text-[#64748B] uppercase">{stock.sector.slice(0, 4)}</span>
-                    </div>
-                    <span className="col-span-2 text-right font-semibold text-[#F8FAFC]">
-                      ₹{stock.ltp.toFixed(2)}
-                    </span>
-                    <span className="col-span-2 text-right font-semibold text-[#10B981]">
-                      +{stock.display_change_pct}%
-                    </span>
-                    <div className="col-span-4 pl-3">
-                      <DepthBricks ltp={stock.ltp} high={stock.open + 15} low={stock.open - 5} />
-                    </div>
-                  </div>
                 ))}
               </div>
             </div>
@@ -309,20 +277,20 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="text-[11px] text-[#94A3B8] font-mono">
-                TOP 20 PICKS (SECTOR DIVERSIFIED)
+                TOP 20 PICKS (HIGH CONVICTION · R:R ≥ 1:2.0)
               </div>
             </div>
 
-            {/* Top Picks Hero Cards */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between text-[11px] font-mono text-[#94A3B8] mb-2 uppercase">
+            {/* Top Picks Hero Cards (Top 20 Exclusive View) */}
+            <div>
+              <div className="flex items-center justify-between text-[11px] font-mono text-[#94A3B8] mb-2.5 uppercase">
                 <span className="text-[#EF4444] font-semibold flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
-                  Primary Focus · Top 20 Stocks
+                  High Conviction · Top 20 Bearish Stocks (R:R ≥ 1:2.0)
                 </span>
                 <span>Ranks #1 – #{filteredBearishPicks.length}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 max-h-[820px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 max-h-[860px] overflow-y-auto pr-1">
                 {filteredBearishPicks.map((pick) => (
                   <TopPickCard
                     key={pick.symbol}
@@ -331,42 +299,6 @@ export default function DashboardPage() {
                     onInspect={handleInspect}
                     onTrade={handleTrade}
                   />
-                ))}
-              </div>
-            </div>
-
-            {/* Bearish Candidates Table */}
-            <div className="border border-[#1E293B] rounded-lg overflow-hidden bg-[#0B0E14]">
-              <div className="bg-[#111622] px-3 py-2 border-b border-[#1E293B] grid grid-cols-12 text-[10px] font-mono text-[#64748B] uppercase">
-                <span className="col-span-1">#</span>
-                <span className="col-span-3">SYMBOL</span>
-                <span className="col-span-2 text-right">LTP</span>
-                <span className="col-span-2 text-right">% CHG</span>
-                <span className="col-span-4 pl-3">ORDER DEPTH</span>
-              </div>
-
-              <div className="divide-y divide-[#1E293B] max-h-80 overflow-y-auto">
-                {filteredBearishBoard.map((stock) => (
-                  <div
-                    key={stock.symbol}
-                    onClick={() => handleInspect(stock.symbol)}
-                    className="px-3 py-2 grid grid-cols-12 items-center text-xs hover:bg-[#1A2234] cursor-pointer transition-colors font-mono"
-                  >
-                    <span className="col-span-1 text-[#64748B]">{stock.rank}</span>
-                    <div className="col-span-3 flex items-center gap-1.5">
-                      <span className="font-bold text-[#F8FAFC] font-sans">{stock.symbol}</span>
-                      <span className="text-[9px] text-[#64748B] uppercase">{stock.sector.slice(0, 4)}</span>
-                    </div>
-                    <span className="col-span-2 text-right font-semibold text-[#F8FAFC]">
-                      ₹{stock.ltp.toFixed(2)}
-                    </span>
-                    <span className="col-span-2 text-right font-semibold text-[#EF4444]">
-                      {stock.display_change_pct}%
-                    </span>
-                    <div className="col-span-4 pl-3">
-                      <DepthBricks ltp={stock.ltp} high={stock.open + 5} low={stock.open - 15} />
-                    </div>
-                  </div>
                 ))}
               </div>
             </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
-import { TopPickCardOutput, Candle5m } from "@/lib/types";
+import React, { useEffect, useState } from "react";
+import { TopPickCardOutput, Candle5m, SymbolAnalyticsResponse } from "@/lib/types";
 import { PriceChart } from "../charts/PriceChart";
-import { X, Crosshair, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { X, Crosshair, TrendingUp, TrendingDown, Clock, ShieldAlert, Target, CheckCircle2, AlertOctagon } from "lucide-react";
 import { formatMarketTime, formatMarketTimeWithSeconds, formatTimeAgo } from "@/lib/timeUtils";
+import { apiClient } from "@/lib/api";
 
 interface InspectionDrawerProps {
   isOpen: boolean;
@@ -21,11 +22,50 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
   candles = [],
   onTrade,
 }) => {
+  const [analytics, setAnalytics] = useState<SymbolAnalyticsResponse | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isOpen || !pick?.symbol) {
+      setAnalytics(null);
+      return;
+    }
+
+    let isMounted = true;
+    setLoadingAnalytics(true);
+    apiClient
+      .getSymbolAnalytics(pick.symbol)
+      .then((data) => {
+        if (isMounted) setAnalytics(data);
+      })
+      .catch((err) => {
+        console.warn("Failed to load symbol analytics:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingAnalytics(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, pick?.symbol]);
+
   if (!isOpen || !pick) return null;
 
   const isBull = pick.board === "BULLISH";
   const accent = isBull ? "text-[#10B981]" : "text-[#EF4444]";
-  const bgSoft = isBull ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
+  const bgSoft = isBull
+    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+    : "bg-red-500/10 text-red-400 border-red-500/20";
+
+  // For Bullish: support_1 is Stop Loss, resistance_1 is Target
+  // For Bearish: resistance_1 is Stop Loss, support_1 is Target
+  const stopLossLevel = isBull ? pick.support_1 : pick.resistance_1;
+  const targetLevel = isBull ? pick.resistance_1 : pick.support_1;
+
+  const openPos = analytics?.open_position;
+  const tradeHistory = analytics?.history || [];
+  const latestTrade = tradeHistory.length > 0 ? tradeHistory[0] : null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/65 backdrop-blur-sm animate-fade-in">
@@ -78,30 +118,28 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
         {/* The 9-Metric Quantitative Grid */}
         <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-[#0B0E14] border border-[#1E293B] rounded-lg mb-4 text-xs font-mono">
           <div>
-            <div className="text-[10px] text-[#64748B]">1. RANK</div>
-            <div className="text-[#F8FAFC] font-semibold">#{pick.rank} · Top Tier</div>
+            <div className="text-[10px] text-[#64748B]">1. RANK & CONVICTION</div>
+            <div className="text-[#F8FAFC] font-semibold">#{pick.rank} · <span className="text-[#38BDF8] font-bold">{pick.conviction_score}%</span></div>
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">2. MODEL</div>
-            <div className="text-[#F8FAFC] font-semibold">{pick.board} SMC</div>
+            <div className="text-[10px] text-[#64748B]">2. MODEL & SETUP</div>
+            <div className={`font-bold uppercase ${accent}`}>{pick.board} SMC</div>
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">3. CONVICTION</div>
-            <div className="text-[#38BDF8] font-bold">{pick.conviction_score}%</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-[#64748B]">4. DERIVATIVE OI</div>
+            <div className="text-[10px] text-[#64748B]">3. DERIVATIVE OI</div>
             <div className="text-[#10B981] font-semibold">{pick.buildup}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">5. VWAP</div>
+            <div className="text-[10px] text-[#64748B]">4. VWAP</div>
             <div className="text-[#38BDF8] font-semibold">₹{pick.vwap.toFixed(2)}</div>
           </div>
           <div>
             <div className="flex items-center justify-between text-[10px] text-[#64748B]">
-              <span>6. OB ZONE & TIME</span>
+              <span>5. OB ZONE & TIME</span>
               {pick.ob_state && (
-                <span className="text-[9px] text-emerald-400 font-bold px-1 rounded bg-[#1A2234]">
+                <span className={`text-[9px] font-bold px-1 rounded border ${
+                  isBull ? "bg-emerald-500/10 border-emerald-500/20 text-[#10B981]" : "bg-red-500/10 border-red-500/20 text-[#EF4444]"
+                }`}>
                   {pick.ob_state}
                 </span>
               )}
@@ -115,17 +153,101 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
             )}
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">7. {isBull ? "STOP (S1)" : "STOP (R1)"}</div>
-            <div className="text-amber-400 font-semibold">{pick.support_1.toFixed(1)}</div>
+            <div className="text-[10px] text-[#64748B]">6. RISK : REWARD</div>
+            <div className="text-[#38BDF8] font-bold text-sm">1 : {pick.risk_reward}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">8. TARGET (R1)</div>
-            <div className="text-[#10B981] font-semibold">{pick.resistance_1.toFixed(1)}</div>
+            <div className="text-[10px] text-[#64748B]">7. {isBull ? "STOP LOSS (S1)" : "STOP LOSS (R1)"}</div>
+            <div className="text-amber-400 font-semibold">₹{stopLossLevel.toFixed(1)}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[#64748B]">9. RISK : REWARD</div>
-            <div className="text-[#F8FAFC] font-bold text-sm">1 : {pick.risk_reward}</div>
+            <div className="text-[10px] text-[#64748B]">8. {isBull ? "TARGET (R1)" : "TARGET (S1)"}</div>
+            <div className="text-[#10B981] font-semibold">₹{targetLevel.toFixed(1)}</div>
           </div>
+          <div>
+            <div className="text-[10px] text-[#64748B]">9. CHART OB COUNT</div>
+            <div className="text-[#F8FAFC] font-semibold">
+              {pick.chart_total_obs || 1} OBs ({pick.chart_fresh_obs || 1} Fresh)
+            </div>
+          </div>
+        </div>
+
+        {/* 1-Share Automated Paper Trading & OB Placement Card */}
+        <div className="p-3 bg-[#0B0E14] border border-[#1E293B] rounded-lg mb-4 font-mono text-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-[#1E293B] mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#38BDF8] animate-pulse" />
+              <span className="font-bold text-[#F8FAFC] tracking-wide">
+                AUTOMATED 1-SHARE PAPER TRADE (OB SPOT)
+              </span>
+            </div>
+            {openPos ? (
+              <span className="px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-[#38BDF8] text-[10px] font-bold animate-pulse">
+                ACTIVE POSITION ({openPos.side})
+              </span>
+            ) : latestTrade ? (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                latestTrade.hit_type === "TARGET"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-[#10B981]"
+                  : "bg-red-500/10 border-red-500/20 text-[#EF4444]"
+              }`}>
+                {latestTrade.hit_type === "TARGET" ? "TARGET HIT 🎯" : "STOP LOSS HIT 🛑"}
+              </span>
+            ) : (
+              <span className="text-[10px] text-[#64748B]">PENDING FILL</span>
+            )}
+          </div>
+
+          {openPos ? (
+            <div className="grid grid-cols-4 gap-2 text-[11px]">
+              <div>
+                <span className="text-[#64748B] block text-[9px]">ENTRY SPOT</span>
+                <span className="font-bold text-[#F8FAFC]">₹{openPos.entry_price.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-[#64748B] block text-[9px]">TARGET (MIN 2R)</span>
+                <span className="font-bold text-[#10B981]">₹{openPos.target.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-[#64748B] block text-[9px]">STOP LOSS</span>
+                <span className="font-bold text-amber-400">₹{openPos.stop_loss.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-[#64748B] block text-[9px]">LIVE UNREALIZED PnL</span>
+                <span className={`font-bold ${openPos.unrealized_pnl >= 0 ? "text-[#10B981]" : "text-[#EF4444]"}`}>
+                  {openPos.unrealized_pnl >= 0 ? `+₹${openPos.unrealized_pnl.toFixed(2)}` : `-₹${Math.abs(openPos.unrealized_pnl).toFixed(2)}`}
+                </span>
+              </div>
+            </div>
+          ) : latestTrade ? (
+            <div className="flex flex-col gap-1.5 text-[11px]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  {latestTrade.hit_type === "TARGET" ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
+                  ) : (
+                    <AlertOctagon className="w-3.5 h-3.5 text-[#EF4444]" />
+                  )}
+                  <span className="text-[#94A3B8]">
+                    1 Share {latestTrade.side} filled at ₹{latestTrade.entry_price.toFixed(2)} · Exited at ₹{latestTrade.exit_price.toFixed(2)}
+                  </span>
+                </div>
+                <span className={`font-bold ${latestTrade.realized_pnl >= 0 ? "text-[#10B981]" : "text-[#EF4444]"}`}>
+                  {latestTrade.realized_pnl >= 0 ? `+₹${latestTrade.realized_pnl.toFixed(2)}` : `-₹${Math.abs(latestTrade.realized_pnl).toFixed(2)}`} ({latestTrade.return_pct}%)
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[9px] text-[#64748B]">
+                <span>Exit Trigger: <strong>{latestTrade.exit_reason}</strong></span>
+                <span>Hit at: <strong>{formatMarketTimeWithSeconds(latestTrade.exit_time)}</strong></span>
+                <span>R:R Achieved: <strong className="text-[#38BDF8]">{latestTrade.r_multiple_achieved}R</strong></span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-[11px] text-[#94A3B8] flex items-center justify-between">
+              <span>Automated 1-share trade triggered on OB formation. Awaiting market fill.</span>
+              <span className="text-[#38BDF8]">Spot: ₹{pick.ltp.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         {/* Candlestick Chart View */}
@@ -149,8 +271,8 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
                 </span>
               )}
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[#10B981] font-semibold text-[11px]">
+                <span className={`w-2 h-2 rounded-full ${isBull ? "bg-[#10B981]" : "bg-[#EF4444]"} animate-pulse`} />
+                <span className={`font-semibold text-[11px] ${accent}`}>
                   {pick.ob_state || "ACTIVE"} ORDER BLOCK
                 </span>
                 {pick.ob_formed_at && (
@@ -164,8 +286,8 @@ export const InspectionDrawer: React.FC<InspectionDrawerProps> = ({
               candles={candles.length > 0 ? candles : (pick.mini_chart_candles || [])}
               zoneHigh={pick.zone_high}
               zoneLow={pick.zone_low}
-              invalidationLevel={pick.support_1}
-              targetLevel={pick.resistance_1}
+              invalidationLevel={stopLossLevel}
+              targetLevel={targetLevel}
               isBullish={isBull}
               obFormedAt={pick.ob_formed_at}
               obConfirmedAt={pick.ob_confirmed_at}

@@ -55,7 +55,12 @@ export interface StockChartResponse {
   ob_formed_at?: string;
   ob_confirmed_at?: string;
   ob_state?: string;
+  chart_total_obs?: number;
+  chart_fresh_obs?: number;
+  chart_mitigated_obs?: number;
+  chart_invalidated_obs?: number;
   order_blocks: OrderBlockZone[];
+  auto_paper_trade?: Record<string, any> | null;
 }
 
 export interface OrderPlacementPayload {
@@ -215,4 +220,15 @@ export const api = {
       data: import("@/lib/types").StockObStatsResponse;
     }>(`/api/stock/${encodeURIComponent(symbol)}/ob-stats`);
   },
+
+  /**
+   * Symbol specific 1-share paper trade status and history
+   */
+  async getSymbolAnalytics(symbol: string): Promise<import("@/lib/types").SymbolAnalyticsResponse> {
+    return apiFetch<import("@/lib/types").SymbolAnalyticsResponse>(
+      `/api/execution/analytics/${encodeURIComponent(symbol)}`
+    );
+  },
 };
+
+export const apiClient = api;
