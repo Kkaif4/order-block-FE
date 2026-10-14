@@ -97,7 +97,6 @@ export default function DashboardPage() {
     setOrderModalOpen(true);
   };
 
-  // Filtered boards based on search query
   const filteredBullishBoard = useMemo(() => {
     if (!data) return [];
     if (!searchQuery) return data.bullish_board;
@@ -110,6 +109,22 @@ export default function DashboardPage() {
     if (!searchQuery) return data.bearish_board;
     const q = searchQuery.toUpperCase();
     return data.bearish_board.filter((s) => s.symbol.includes(q) || s.sector.includes(q));
+  }, [data, searchQuery]);
+
+  const filteredBullishPicks = useMemo(() => {
+    if (!data) return [];
+    const picks = data.bullish_picks.slice(0, 20);
+    if (!searchQuery) return picks;
+    const q = searchQuery.toUpperCase();
+    return picks.filter((s) => s.symbol.includes(q) || s.sector.includes(q));
+  }, [data, searchQuery]);
+
+  const filteredBearishPicks = useMemo(() => {
+    if (!data) return [];
+    const picks = data.bearish_picks.slice(0, 20);
+    if (!searchQuery) return picks;
+    const q = searchQuery.toUpperCase();
+    return picks.filter((s) => s.symbol.includes(q) || s.sector.includes(q));
   }, [data, searchQuery]);
 
   if (!data) {
@@ -216,7 +231,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="text-[11px] text-[#94A3B8] font-mono">
-                TOP PICKS (SECTOR CAP ≤ 2)
+                TOP 20 PICKS (SECTOR DIVERSIFIED)
               </div>
             </div>
 
@@ -225,12 +240,12 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between text-[11px] font-mono text-[#94A3B8] mb-2 uppercase">
                 <span className="text-[#10B981] font-semibold flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                  Primary Focus · Top Picks
+                  Primary Focus · Top 20 Stocks
                 </span>
-                <span>Ranks #1 – #6</span>
+                <span>Ranks #1 – #{filteredBullishPicks.length}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                {data.bullish_picks.slice(0, 6).map((pick) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 max-h-[820px] overflow-y-auto pr-1">
+                {filteredBullishPicks.map((pick) => (
                   <TopPickCard
                     key={pick.symbol}
                     pick={pick}
@@ -294,7 +309,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="text-[11px] text-[#94A3B8] font-mono">
-                TOP PICKS (SECTOR CAP ≤ 2)
+                TOP 20 PICKS (SECTOR DIVERSIFIED)
               </div>
             </div>
 
@@ -303,12 +318,12 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between text-[11px] font-mono text-[#94A3B8] mb-2 uppercase">
                 <span className="text-[#EF4444] font-semibold flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
-                  Primary Focus · Top Picks
+                  Primary Focus · Top 20 Stocks
                 </span>
-                <span>Ranks #1 – #6</span>
+                <span>Ranks #1 – #{filteredBearishPicks.length}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                {data.bearish_picks.slice(0, 6).map((pick) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2.5 max-h-[820px] overflow-y-auto pr-1">
+                {filteredBearishPicks.map((pick) => (
                   <TopPickCard
                     key={pick.symbol}
                     pick={pick}
