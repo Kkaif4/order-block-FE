@@ -41,6 +41,27 @@ export function formatMarketTimeWithSeconds(isoString?: string | null): string {
   }
 }
 
+export function formatPositionTime(isoString?: string | null): string {
+  if (!isoString) return "--:--";
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return "--:--";
+
+    const timeStr = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }).format(d);
+
+    const ago = formatTimeAgo(isoString);
+    return ago ? `${timeStr} IST (${ago})` : `${timeStr} IST`;
+  } catch {
+    return "--:--";
+  }
+}
+
 export function formatTimeAgo(isoString?: string | null): string {
   if (!isoString) return "";
   try {
@@ -75,3 +96,36 @@ export function formatDuration(seconds?: number | null): string {
   const remMins = mins % 60;
   return `${hours}h ${remMins}m`;
 }
+
+/**
+ * Checks if current time is within Indian Stock Market operating window:
+ * Monday to Friday, 08:55 AM IST to 03:35 PM IST (pre-market buffer to market close buffer)
+ */
+export function isIndianMarketHours(): boolean {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(now);
+    const weekday = parts.find((p) => p.type === "weekday")?.value;
+    const hour = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+    const minute = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+
+    if (weekday === "Sat" || weekday === "Sun") {
+      return false;
+    }
+
+    const totalMinutes = hour * 60 + minute;
+    // 08:55 AM is 8*60 + 55 = 535
+    // 03:35 PM (15:35) is 15*60 + 35 = 935
+    return totalMinutes >= 535 && totalMinutes <= 935;
+  } catch {
+    return false;
+  }
+}
+

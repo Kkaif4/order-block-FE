@@ -21,7 +21,9 @@ import { api } from "@/lib/api";
 import {
   formatMarketTime,
   formatMarketTimeWithSeconds,
+  formatPositionTime,
   formatDuration,
+  isIndianMarketHours,
 } from "@/lib/timeUtils";
 
 interface PositionsDrawerProps {
@@ -47,23 +49,21 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
     try {
       if (currentTab === "ANALYTICS") {
         const [tradesRes, sumRes] = await Promise.all([
-          api.getTradeAnalytics({ limit: 100 }).catch(() => ({ data: [] })),
-          api.getTradeSummary().catch(() => ({ data: null })),
+          api.getTradeAnalytics({ limit: 100 }).catch(() => null),
+          api.getTradeSummary().catch(() => null),
         ]);
-        setTrades(tradesRes.data || []);
-        if (sumRes.data) {
-          setSummary(sumRes.data);
-        }
+        if (tradesRes?.data) setTrades(tradesRes.data);
+        if (sumRes?.data) setSummary(sumRes.data);
       } else if (currentTab === "ORDERS") {
-        const ordRes = await api.getOrders().catch(() => ({ data: [] }));
-        setOrders(ordRes.data || []);
+        const ordRes = await api.getOrders().catch(() => null);
+        if (ordRes?.data) setOrders(ordRes.data);
       } else {
         const [posRes, ordRes] = await Promise.all([
-          api.getPositions().catch(() => ({ data: [] })),
-          api.getOrders().catch(() => ({ data: [] })),
+          api.getPositions().catch(() => null),
+          api.getOrders().catch(() => null),
         ]);
-        setPositions(posRes.data || []);
-        setOrders(ordRes.data || []);
+        if (posRes?.data) setPositions(posRes.data);
+        if (ordRes?.data) setOrders(ordRes.data);
       }
     } catch (e) {
       console.warn("Failed to fetch execution & analytics data:", e);
@@ -83,15 +83,19 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
     })();
 
     // Only active tab is polled to eliminate duplicate background fetches
-    const interval = setInterval(() => {
-      if (isMounted) {
-        void fetchData();
-      }
-    }, 3000);
+    // And only during Indian market hours when tab is visible
+    let interval: NodeJS.Timeout | null = null;
+    if (isIndianMarketHours()) {
+      interval = setInterval(() => {
+        if (isMounted && typeof document !== "undefined" && document.visibilityState === "visible") {
+          void fetchData();
+        }
+      }, 5000);
+    }
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, [isOpen, fetchData]);
 
@@ -246,13 +250,15 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-[#64748B] pt-1">
-                      <div className="flex items-center gap-1">
+                    <div className="flex flex-col gap-1 text-[10px] text-[#64748B] pt-1">
+                      <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-[#38BDF8]" />
-                        <span>Opened: {formatMarketTime(pos.opened_at)}</span>
+                        <span>Opened: <strong className="text-[#F8FAFC]">{formatPositionTime(pos.opened_at)}</strong></span>
                       </div>
                       {pos.active_ob_formed_at && (
-                        <span>OB Formed: {formatMarketTime(pos.active_ob_formed_at)}</span>
+                        <div className="text-[10px] text-[#94A3B8]">
+                          OB Formed: {formatPositionTime(pos.active_ob_formed_at)}
+                        </div>
                       )}
                     </div>
 
@@ -292,7 +298,7 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
                       <span className="text-[#94A3B8]">x{ord.quantity}</span>
                     </div>
                     <div className="text-[10px] text-[#64748B]">
-                      {formatMarketTimeWithSeconds(ord.created_at)}
+                      {formatPositionTime(ord.created_at)}
                     </div>
                   </div>
 
@@ -485,7 +491,7 @@ export function PositionsDrawer({ isOpen, onClose }: PositionsDrawerProps) {
                           <Clock className="w-3 h-3 text-[#38BDF8]" />
                           <span className="text-[#64748B]">Hit / Exit Time:</span>
                           <span className="text-[#F8FAFC] font-bold">
-                            {formatMarketTimeWithSeconds(t.exit_time)}
+                            {formatPositionTime(t.exit_time)}
                           </span>
                         </div>
                         <div className="text-[#94A3B8]">

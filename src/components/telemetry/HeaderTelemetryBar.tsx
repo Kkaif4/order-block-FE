@@ -9,6 +9,7 @@ interface HeaderTelemetryBarProps {
   syncQuality?: CycleQuality;
   universeSize?: number;
   onRefresh?: () => void;
+  onOpenPositions?: () => void;
 }
 
 interface BrokerHealth {
@@ -24,6 +25,7 @@ export function HeaderTelemetryBar({
   syncQuality = "ACCEPTED",
   universeSize = 213,
   onRefresh,
+  onOpenPositions,
 }: HeaderTelemetryBarProps) {
   const [brokerHealth, setBrokerHealth] = useState<BrokerHealth | null>(null);
 
@@ -118,6 +120,16 @@ export function HeaderTelemetryBar({
               {brokerHealth.valid ? `VALID (${formatDaysRemaining(brokerHealth.seconds_remaining)})` : "EXPIRED"}
             </span>
           </div>
+        )}
+
+        {/* Positions Drawer Shortcut */}
+        {onOpenPositions && (
+          <button
+            onClick={onOpenPositions}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1A2234] hover:bg-[#243048] border border-[#38BDF8]/40 hover:border-[#38BDF8] text-[#38BDF8] text-xs font-bold font-mono transition-all active:scale-95 shadow-sm"
+          >
+            <span>💼 POSITIONS</span>
+          </button>
         )}
 
         {/* Refresh Action Trigger */}

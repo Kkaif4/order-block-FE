@@ -191,30 +191,30 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     if (zoneHigh && zoneLow) {
       candleSeries.createPriceLine({
         price: zoneHigh,
-        color: isBullish ? "#19E58C" : "#FF4D67",
+        color: isBullish ? "#10B981" : "#EF4444",
         lineWidth: 2,
         lineStyle: 0,
         axisLabelVisible: true,
-        title: "OB ZONE HIGH",
+        title: isBullish ? "🟢 DEMAND OB HIGH" : "🔴 SUPPLY OB HIGH",
       });
       candleSeries.createPriceLine({
         price: zoneLow,
-        color: isBullish ? "#19E58C" : "#FF4D67",
+        color: isBullish ? "#10B981" : "#EF4444",
         lineWidth: 2,
         lineStyle: 0,
         axisLabelVisible: true,
-        title: "OB ZONE LOW",
+        title: isBullish ? "🟢 DEMAND OB LOW" : "🔴 SUPPLY OB LOW",
       });
     }
 
     if (invalidationLevel) {
       candleSeries.createPriceLine({
         price: invalidationLevel,
-        color: isBullish ? "#FFB020" : "#FF4D67",
-        lineWidth: 1,
+        color: "#EF4444",
+        lineWidth: 2,
         lineStyle: 2, // Dashed
         axisLabelVisible: true,
-        title: isBullish ? "STOP LOSS (S1)" : "STOP LOSS (R1)",
+        title: "🛑 STOP LOSS",
       });
     }
 
@@ -222,10 +222,10 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       candleSeries.createPriceLine({
         price: targetLevel,
         color: "#10B981",
-        lineWidth: 1,
+        lineWidth: 2,
         lineStyle: 1, // Dotted
         axisLabelVisible: true,
-        title: isBullish ? "TARGET (R1)" : "TARGET (S1)",
+        title: "🎯 TARGET (TP)",
       });
     }
 

@@ -17,13 +17,22 @@ import {
 } from "@/lib/types";
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "https://order-block-backend-latest.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "https://orderblock-backend-latest.onrender.com";
 
 const defaultWsUrl = API_BASE_URL.startsWith("https://")
   ? `${API_BASE_URL.replace(/^https:\/\//, "wss://")}/ws/telemetry`
   : `${API_BASE_URL.replace(/^http:\/\//, "ws://")}/ws/telemetry`;
 
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+let rawWsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
+// Sanitize any malformed wss:/ or ws:/ single-slash prefix
+rawWsUrl = rawWsUrl.replace(/^wss:\/([^\/])/, "wss://$1").replace(/^ws:\/([^\/])/, "ws://$1");
+
+// Auto-guard: browsers reject wss:// to unencrypted localhost/127.0.0.1
+if (rawWsUrl.includes("localhost") || rawWsUrl.includes("127.0.0.1")) {
+  rawWsUrl = rawWsUrl.replace(/^wss:\/\//, "ws://");
+}
+
+export const WS_BASE_URL = rawWsUrl;
 
 export interface SystemHealthResponse {
   status: string;
@@ -49,8 +58,12 @@ export interface StockChartResponse {
   candles: Candle5m[];
   zone_high?: number;
   zone_low?: number;
+  direction?: "BULLISH" | "BEARISH";
   invalidation_level?: number;
+  stop_loss_level?: number;
   target_level?: number;
+  support_1?: number;
+  resistance_1?: number;
   vwap?: number;
   ob_formed_at?: string;
   ob_confirmed_at?: string;

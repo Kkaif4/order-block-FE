@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BoardSnapshot, WebSocketConnectionState } from "@/lib/types";
 import { WS_BASE_URL, api } from "@/lib/api";
+import { isIndianMarketHours } from "@/lib/timeUtils";
 
 interface UseOrderBlockSocketOptions {
   wsUrl?: string;
@@ -131,10 +132,20 @@ export function useOrderBlockSocket({
   const scheduleReconnect = useCallback(() => {
     if (!isMountedRef.current) return;
 
-    if (!pollIntervalRef.current) {
+    // If initial snapshot has not arrived yet, always hydrate via HTTP
+    if (!hasReceivedDataRef.current) {
       fetchSnapshotViaHttp();
+    }
+
+    // Only active fallback-polling during Indian market hours
+    if (!pollIntervalRef.current && isIndianMarketHours()) {
       pollIntervalRef.current = setInterval(() => {
-        if (isMountedRef.current) {
+        if (
+          isMountedRef.current &&
+          isIndianMarketHours() &&
+          typeof document !== "undefined" &&
+          document.visibilityState === "visible"
+        ) {
           fetchSnapshotViaHttp();
         }
       }, pollIntervalMs);
@@ -144,7 +155,9 @@ export function useOrderBlockSocket({
       clearTimeout(reconnectTimeoutRef.current);
     }
 
-    const delay = Math.min(1000 * Math.pow(2, attemptRef.current), 10000);
+    // Outside market hours, back off reconnects to 60s to prevent exhausting Render free tier
+    const maxBackoff = isIndianMarketHours() ? 10000 : 60000;
+    const delay = Math.min(1000 * Math.pow(2, attemptRef.current), maxBackoff);
     attemptRef.current += 1;
 
     reconnectTimeoutRef.current = setTimeout(() => {

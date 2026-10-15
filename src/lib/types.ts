@@ -81,6 +81,8 @@ export interface TopPickCardOutput {
   resistance_2: number;
   risk_reward: number;
   vwap: number;
+  stop_loss?: number;
+  target?: number;
   mini_chart_candles?: Candle5m[];
   ob_formed_at?: string;
   ob_confirmed_at?: string;
@@ -187,7 +189,9 @@ export interface StockChartResponse {
   candles: Candle5m[];
   zone_high: number;
   zone_low: number;
+  direction?: "BULLISH" | "BEARISH";
   invalidation_level: number;
+  stop_loss_level?: number;
   target_level: number;
   vwap: number;
   ob_formed_at?: string | null;

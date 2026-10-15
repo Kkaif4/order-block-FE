@@ -39,7 +39,7 @@ jobs:
               print(f"[{time_str}] Outside market hours ({now_ist.time().strftime('%H:%M:%S')} IST) -> Sleep preserved.")
               sys.exit(0)
 
-          url = "https://order-block-backend-latest.onrender.com/api/health"
+          url = "https://orderblock-backend-latest.onrender.com/api/health"
           print(f"[{time_str}] Market hours active -> Pinging {url}...")
 
           start = time.time()

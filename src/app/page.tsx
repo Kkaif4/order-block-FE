@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { TopPickCardOutput, Candle5m, ZoneState } from "@/lib/types";
 import { useOrderBlockSocket } from "@/lib/useOrderBlockSocket";
 import { api } from "@/lib/api";
@@ -10,7 +10,7 @@ import { OrderModal } from "@/components/execution/OrderModal";
 import { PositionsDrawer } from "@/components/execution/PositionsDrawer";
 import { BeeSwarmBreadth } from "@/components/boards/BeeSwarmBreadth";
 import { TopPickCard } from "@/components/boards/TopPickCard";
-import { InspectionDrawer } from "@/components/boards/InspectionDrawer";
+import { FullScreenChartModal } from "@/components/boards/FullScreenChartModal";
 import { TrendingUp, TrendingDown, Search } from "lucide-react";
 
 export default function DashboardPage() {
@@ -79,8 +79,10 @@ export default function DashboardPage() {
                   ...prev,
                   zone_high: chartData.zone_high ?? prev.zone_high,
                   zone_low: chartData.zone_low ?? prev.zone_low,
-                  support_1: chartData.invalidation_level ?? prev.support_1,
-                  resistance_1: chartData.target_level ?? prev.resistance_1,
+                  stop_loss: chartData.stop_loss_level ?? chartData.invalidation_level ?? prev.stop_loss,
+                  target: chartData.target_level ?? prev.target,
+                  support_1: chartData.support_1 ?? prev.support_1,
+                  resistance_1: chartData.resistance_1 ?? prev.resistance_1,
                   vwap: chartData.vwap ?? prev.vwap,
                   ob_formed_at: chartData.ob_formed_at ?? prev.ob_formed_at,
                   ob_confirmed_at: chartData.ob_confirmed_at ?? prev.ob_confirmed_at,
@@ -124,12 +126,38 @@ export default function DashboardPage() {
     return picks.filter((s) => s.symbol.includes(q) || s.sector.includes(q));
   }, [data, searchQuery]);
 
+  const [syncElapsed, setSyncElapsed] = useState(0);
+
+  useEffect(() => {
+    if (data) return;
+    const timer = setInterval(() => {
+      setSyncElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [data]);
+
   if (!data) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0B0E14] text-[#F8FAFC]">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 max-w-md text-center px-4">
           <div className="w-8 h-8 border-2 border-[#38BDF8] border-t-transparent rounded-full animate-spin" />
-          <span className="font-mono text-xs text-[#94A3B8]">Syncing OrderBlock Terminal...</span>
+          <span className="font-mono text-sm text-[#F8FAFC]">Syncing OrderBlock Terminal...</span>
+          <span className="font-mono text-xs text-[#94A3B8]">
+            Status: {connectionState} {syncElapsed > 3 ? `(${syncElapsed}s)` : ""}
+          </span>
+          {syncElapsed > 5 && (
+            <div className="flex flex-col items-center gap-2 mt-1">
+              <span className="text-[11px] text-amber-400/90 font-mono">
+                Connecting to backend feeds. Render free-tier spins up in ~30s on cold start.
+              </span>
+              <button
+                onClick={reconnect}
+                className="mt-1 px-3.5 py-1.5 rounded-lg bg-[#1A2234] hover:bg-[#243048] border border-[#38BDF8]/40 text-[#38BDF8] text-xs font-mono transition-all active:scale-95"
+              >
+                Retry Sync Now
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -143,6 +171,7 @@ export default function DashboardPage() {
         syncQuality={data.synchronization.quality}
         universeSize={data.contractual_universe_size}
         onRefresh={reconnect}
+        onOpenPositions={() => setPositionsOpen(true)}
       />
 
       {/* 2. Paper Trading Account Summary Ticker & Kill-Switch */}
@@ -299,8 +328,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* 6. Inspection Slide-over Drawer with Detailed 5m Chart */}
-      <InspectionDrawer
+      {/* 6. Full-Screen SMC Candlestick Chart with 28% Sidebar */}
+      <FullScreenChartModal
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         pick={selectedPick}

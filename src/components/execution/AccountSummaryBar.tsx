@@ -10,6 +10,7 @@ interface AccountSummaryBarProps {
 }
 
 import { api } from "@/lib/api";
+import { isIndianMarketHours } from "@/lib/timeUtils";
 
 export function AccountSummaryBar({
   onOpenPositions,
@@ -31,7 +32,18 @@ export function AccountSummaryBar({
 
   useEffect(() => {
     fetchAccount();
-    const interval = setInterval(fetchAccount, 10000);
+
+    // Do NOT poll outside Indian market hours to preserve Render free-tier sleep
+    if (!isIndianMarketHours()) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible" && isIndianMarketHours()) {
+        fetchAccount();
+      }
+    }, 15000);
+
     return () => clearInterval(interval);
   }, [fetchAccount]);
 
@@ -60,9 +72,13 @@ export function AccountSummaryBar({
     }
   };
 
-  if (!account) return null;
-
-  const isPositivePnl = account.unrealized_pnl >= 0;
+  const isPositivePnl = (account?.unrealized_pnl ?? 0) >= 0;
+  const equity = account?.equity ?? 500000;
+  const margin = account?.available_margin ?? 500000;
+  const pnl = account?.unrealized_pnl ?? 0;
+  const dailyLoss = account?.realized_daily_loss ?? 0;
+  const posCount = account?.open_positions_count ?? 0;
+  const isKillActive = account?.kill_switch_active ?? false;
 
   return (
     <>
@@ -76,7 +92,7 @@ export function AccountSummaryBar({
             <div>
               <span className="text-[#64748B] text-[10px] block">EQUITY</span>
               <span className="text-[#F8FAFC] font-bold">
-                ₹{account.equity.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                ₹{equity.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -84,7 +100,7 @@ export function AccountSummaryBar({
           <div className="border-l border-[#1E293B] pl-3">
             <span className="text-[#64748B] text-[10px] block">AVAILABLE MARGIN</span>
             <span className="text-[#94A3B8]">
-              ₹{account.available_margin.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              ₹{margin.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </span>
           </div>
 
@@ -95,31 +111,29 @@ export function AccountSummaryBar({
                 isPositivePnl ? "text-[#10B981]" : "text-[#EF4444]"
               }`}
             >
-              {isPositivePnl ? `+₹${account.unrealized_pnl.toFixed(2)}` : `-₹${Math.abs(account.unrealized_pnl).toFixed(2)}`}
+              {isPositivePnl ? `+₹${pnl.toFixed(2)}` : `-₹${Math.abs(pnl).toFixed(2)}`}
             </span>
           </div>
 
           <div className="border-l border-[#1E293B] pl-3">
             <span className="text-[#64748B] text-[10px] block">DAILY LOSS RECORD</span>
             <span className="text-amber-400">
-              ₹{account.realized_daily_loss.toFixed(2)}
+              ₹{dailyLoss.toFixed(2)}
             </span>
           </div>
         </div>
 
         {/* Right: Positions Drawer Trigger & Emergency Kill-Switch */}
         <div className="flex items-center gap-2">
-          {account.open_positions_count > 0 && (
-            <button
-              onClick={onOpenPositions}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1A2234] hover:bg-[#1E293B] border border-[#1E293B] text-[#38BDF8] active:scale-[0.96] transition-all font-sans font-semibold"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Positions ({account.open_positions_count})</span>
-            </button>
-          )}
+          <button
+            onClick={onOpenPositions}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#1A2234] hover:bg-[#243048] border border-[#38BDF8]/30 hover:border-[#38BDF8]/60 text-[#38BDF8] active:scale-[0.96] transition-all font-sans font-semibold shadow-sm"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Positions & Portfolio ({posCount})</span>
+          </button>
 
-          {account.kill_switch_active ? (
+          {isKillActive ? (
             <button
               onClick={handleResetKillSwitch}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 active:scale-[0.96] transition-all font-sans font-semibold"
